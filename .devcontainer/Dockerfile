@@ -1,83 +1,77 @@
+#-------------------------------------------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
+#-------------------------------------------------------------------------------------------------------------
+
 FROM google/dart:2.9-dev
-
-
-# The image includes a non-root user with sudo access. Use the "remoteUser"
-# property in devcontainer.json to use it. On Linux, the container user's GID/UIDs
-# will be updated to match your local UID/GID (when using the dockerFile property).
-# See https://aka.ms/vscode-remote/containers/non-root-user for details.
-ARG USERNAME=vscodei
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
-# Set to false to skip installing zsh and Oh My ZSH!
-ARG INSTALL_ZSH="true"
-
-# Location and expected SHA for common setup script - SHA generated on release
-ARG COMMON_SCRIPT_SOURCE="https://raw.githubusercontent.com/microsoft/vscode-dev-containers/v0.112.0/script-library/common-debian.sh"
-ARG COMMON_SCRIPT_SHA="28e3d552a08e0d82935ad7335837f354809bec9856a3e0c2855f17bfe3a19523"
 
 # Avoid warnings by switching to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Dart Dev Channel
-ENV DART_VERSION 2.9.0-15.0.dev
-ENV DART_SDK /usr/lib/dart
-ENV PATH $DART_SDK/bin:/root/.pub-cache/bin:$PATH
+# Add bin location to path
+ENV PATH="$PATH":"/root/.pub-cache/bin"
 
-# Add user: https://github.com/nodejs/docker-node/blob/2caaf1a42cdf44e0e50ab30c82415c71bf2f3a21/Dockerfile-slim.template#L3
-RUN groupadd --gid 1000 vscodei \
-    && useradd --uid 1000 --gid vscodei --shell /bin/bash --create-home vscodei
+# This Dockerfile adds a non-root user with sudo access. Use the "remoteUser"
+# property in devcontainer.json to use it. On Linux, the container user's GID/UIDs
+# will be updated to match your local UID/GID (when using the dockerFile property).
+# See https://aka.ms/vscode-remote/containers/non-root-user for details.
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
 
-# gnupg2: https://stackoverflow.com/questions/50757647
+# Configure apt and install packages
 RUN apt-get update \
-    && apt-get --no-install-recommends --yes install \
+    && apt-get install --yes --no-install-recommends \
+    apt-utils dialog 2>&1 \
+    #
+    # Verify git, process tools, lsb-release (common in install instructions for CLIs) installed
+    && apt-get install --yes --no-install-recommends \
+    git openssh-client less iproute2 procps lsb-release \
+    #
+    # Install other dependencies
+    && apt-get install --yes --no-install-recommends \
     apt-transport-https \
-    apt-utils \
     ca-certificates \
     curl \
-    dialog \
     git \
     gnupg2 \
-    openssh-client \
+    vim \
     wget \
-    zsh \
     #
-    # Verify git, common tools / libs installed, add/modify non-root user, optionally install zsh
-    && wget -q -O /tmp/common-setup.sh $COMMON_SCRIPT_SOURCE \
-    && ( if [ "$COMMON_SCRIPT_SHA" != "dev-mode" ]; then echo "$COMMON_SCRIPT_SHA /tmp/common-setup.sh" | sha256sum -c - ; fi ) \
-    && /bin/bash /tmp/common-setup.sh "$INSTALL_ZSH" "$USERNAME" "$USER_UID" "$USER_GID" \
-    && rm /tmp/common-setup.sh \
+    # Create a non-root user to use if preferred - see https://aka.ms/vscode-remote/containers/non-root-user.
+    && groupadd --gid $USER_GID $USERNAME \
+    && useradd --shell /bin/bash --uid $USER_UID --gid $USER_GID --create-home $USERNAME \
+    # [Optional] Add sudo support for the non-root user
+    && apt-get install --yes --no-install-recommends sudo \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME\
+    && chmod 0440 /etc/sudoers.d/$USERNAME \
     #
-    # Install dart
-    && curl https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && curl https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_stable.list > /etc/apt/sources.list.d/dart_stable.list \
-    && curl https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_testing.list > /etc/apt/sources.list.d/dart_testing.list \
-    && curl https://storage.googleapis.com/download.dartlang.org/linux/debian/dart_unstable.list > /etc/apt/sources.list.d/dart_unstable.list \
-    && apt-get update \
-    && apt-get install dart=$DART_VERSION-1 \
+    # Install Zsh
+    && apt-get install --yes --no-install-recommends zsh \
+    && sh -c "$(curl -fsSL https://raw.githubusercontent.com/robbyrussell/oh-my-zsh/master/tools/install.sh)" \
+    && echo "export PATH=\$PATH:\$HOME/.local/bin" | tee -a /root/.zshrc \
+    && cp -R /root/.oh-my-zsh /home/$USERNAME \
+    && cp /root/.zshrc /home/$USERNAME \
+    && sed -i -e "s/\/root\/.oh-my-zsh/\/home\/$USERNAME\/.oh-my-zsh/g" /home/$USERNAME/.zshrc \
+    && chown -R $USER_UID:$USER_GID /home/$USERNAME/.oh-my-zsh /home/$USERNAME/.zshrc \
     #
-    # Set dart install location that both users have rights to access
-    && mkdir -p $DART_SDK/bin \
-    && mkdir -p /root/.pub-cache/bin \
-    && chown ${USERNAME}:root $DART_SDK/bin \
-    && chown ${USERNAME}:root /root/.pub-cache/bin \
+    # # Install LazyGit
+    # && apt-get install --yes --no-install-recommends software-properties-common \
+    # # W: GPG error: http://ppa.launchpad.net/lazygit-team/release/ubuntu bionic InRelease: The following signatures couldn't be verified because the public key is not available: NO_PUBKEY 68CCF87596E97291
+    # # E: The repository 'http://ppa.launchpad.net/lazygit-team/release/ubuntu bionic InRelease' is not signed.
+    # && apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 68CCF87596E97291 \
+    # && add-apt-repository "deb http://ppa.launchpad.net/lazygit-team/release/ubuntu bionic main" \
+    # && apt-get update \
+    # && apt-get install --yes --no-install-recommends lazygit \
     #
     # Tactically remove imagemagick due to https://security-tracker.debian.org/tracker/CVE-2019-10131
     # Can leave in Dockerfile once upstream base image moves to > 7.0.7-28.
     && apt-get purge --yes imagemagick imagemagick-6-common \
     #
-    # Cleanup
+    # Clean up
     && apt-get autoremove --yes \
     && apt-get clean --yes \
     && rm -rf /var/lib/apt/lists/*
-
-# https://github.com/microsoft/vscode-remote-try-node/blob/master/.devcontainer/Dockerfile
-# [Optional] Update UID/GID if needed
-RUN if [ "$USER_GID" != "1000" ] || [ "$USER_UID" != "1000" ]; then \
-    groupmod --gid $USER_GID $USERNAME \
-    && usermod --uid $USER_UID --gid $USER_GID $USERNAME \
-    && chown -R $USER_UID:$USER_GID /home/$USERNAME; \
-    fi
 
 # Switch back to dialog for any ad-hoc use of apt-get
 ENV DEBIAN_FRONTEND=dialog
