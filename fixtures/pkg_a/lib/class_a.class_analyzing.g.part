@@ -1,0 +1,26 @@
+// **************************************************************************
+// ClassAnalyzingGenerator
+// **************************************************************************
+
+// Library full name:  "/fixture_pkg_a/lib/class_a.dart"
+
+// Library short name: "class_a.dart"
+
+// Library uri:        "package:fixture_pkg_a/class_a.dart"
+
+// Constructor name is "" (empty-string)
+
+// Params:
+// p:pos.req name:"p1" type:"dart:core#String"(NullabilitySuffix.star)[String*] id:"1253"
+// p:pos.opt name:"p2" type:"dart:core#int"(NullabilitySuffix.star)[int*] id:"1254"
+// p:pos.opt name:"p3" type:"dart:core#int"(NullabilitySuffix.star)[int*] id:"1255"
+
+// Constructor name is "ctor" (non-null)
+
+// Params:
+// p:pos.req name:"cp" type:"dart:core#String"(NullabilitySuffix.star)[String*] id:"1256"
+// p:pos.req name:"cncb" type:"package:fixture_pkg_a/class_b.dart#ClassB"(NullabilitySuffix.star)[ClassB*] id:"1257"
+// p:nam.opt.reqAnnotated name:"cn1" type:"dart:core#String"(NullabilitySuffix.star)[String*] id:"1258"
+// p:nam.opt name:"cn2" type:"dart:core#int"(NullabilitySuffix.star)[int*] id:"1259"
+// p:nam.opt.reqAnnotated name:"cn3" type:"dart:core#int"(NullabilitySuffix.star)[int*] id:"1260"
+// p:nam.opt.reqAnnotated name:"cpcb" type:"package:fixture_pkg_a/class_b.dart#ClassB"(NullabilitySuffix.star)[ClassB*] id:"1261"

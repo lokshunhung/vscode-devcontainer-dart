@@ -1,0 +1,6 @@
+targets:
+    $default:
+        builders:
+            devcontainer_test|class_analyzing_builder:
+                generate_for:
+                    - lib/*.dart

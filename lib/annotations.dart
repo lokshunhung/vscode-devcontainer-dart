@@ -1,0 +1,3 @@
+class ClassAnalyzable {
+  const ClassAnalyzable();
+}

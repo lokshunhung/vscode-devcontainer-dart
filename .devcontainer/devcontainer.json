@@ -4,7 +4,13 @@
 
   // Use 'settings' to set *default* container specific settings.json values on container create.
   "settings": {
-    "terminal.integrated.shell.linux": "/bin/zsh"
+    "terminal.integrated.shell.linux": "/bin/zsh",
+    "json.schemas": [
+      {
+        "fileMatch": ["pubspec.yaml"],
+        "url": "http://json.schemastore.org/pubspec"
+      }
+    ]
   },
 
   // Add the IDs of extensions you want installed when the container is created in the array below.
